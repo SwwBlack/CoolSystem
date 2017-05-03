@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.3.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd"> 
+  
+  <bean class="org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor"/>
+  <context:property-placeholder location="classpath:config.properties"/>
+  <context:component-scan base-package="com.ssh"></context:component-scan>
+  <!-- 定义数据源 -->
+ <bean id="dataSource" class="org.apache.tomcat.dbcp.dbcp2.BasicDataSource" destroy-method="close">
+    <property name="username" value="${jdbc.user}"></property>
+    <property name="password" value="${jdbc.password}"></property>
+    <property name="driverClassName" value="${jdbc.DriverClass}"></property>
+    <property name="url" value="${jdbc.url}"></property>
+ </bean>
+ <!-- 配置sessionFactory -->
+ <bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+     <property name="dataSource" ref="dataSource"></property>
+     <property name="configLocation" value="classpath:hibernate.cfg.xml"></property>
+     <property name="mappingLocations" value="classpath:com/ssh/model/entity/*.hbm.xml"></property>
+ </bean>
+ <!-- 配置实体dao类 -->
+<bean id="studentdao" class="com.ssh.model.daoImpl.StudentDaoImpl">
+     <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+<bean id="accountDao" class="com.ssh.model.daoImpl.AccountDaoImpl">
+     <property name="sessionFactory" ref="sessionFactory"></property>
+</bean>
+<!-- 配置业务service类 -->
+<bean id="studentservice" class="com.ssh.ServeiceImpl.StudentServiceImpl">
+    <property name="studentDao" ref="studentdao"></property>
+</bean>
+<bean id="accountSetviceImpl" class="com.ssh.ServeiceImpl.AccountSetviceImpl">
+    <property name="accountDao" ref="accountDao"></property>
+</bean>
+ 
+ <!-- 配置spring声明事务 --> 
+ <!-- 配置事务管理器 -->
+ <bean id="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+     <property name="sessionFactory" ref="sessionFactory"></property>
+ </bean>
+ <!-- 配置事物属性 -->
+<tx:advice id="txadvice" transaction-manager="transactionManager">
+   <tx:attributes>
+   <tx:method name="*" propagation="REQUIRED"/>
+   </tx:attributes>
+</tx:advice>
+<!-- 配置事物切点，把切点和食物属性关联起来-->
+<aop:config>
+   <aop:pointcut expression="execution(* com.ssh.ServeiceImpl.*.*(..))" id="txpointcut"/>
+   <aop:advisor advice-ref="txadvice" pointcut-ref="txpointcut"/>
+ </aop:config>
+<!-- 配置action -->
+<bean id="studentAction" class="com.ssh.action.StudentAction" scope="prototype">
+     <property name="studentserviceimpls" ref="studentservice"></property>
+</bean>
+<bean id="checkmaneyAction" class="com.ssh.action.CheckmaneyAction">
+    <property name="accountSetviceImpl" ref="accountSetviceImpl"></property>
+</bean>
+<bean id="shuakaAction" class="com.ssh.action.ShuakaAction">
+  <property name="accountsetviceImpl" ref="accountSetviceImpl"></property>
+</bean>
+</beans>
